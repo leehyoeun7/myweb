@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="음료 가격, 재료비, 예상 판매량을 바탕으로 하루 매출과 이익을 계산하는 가상 카페 경영 시뮬레이션"
+  >
+  <title>나만의 카페 경영 시뮬레이션</title>
+
+  <style>
+    :root {
+      --background: #fffaf2;
+      --surface: #ffffff;
+      --surface-soft: #fff7e9;
+      --primary: #9b633c;
+      --primary-dark: #75462a;
+      --primary-light: #f2d6b6;
+      --accent: #4d9b7a;
+      --accent-light: #d9f1e7;
+      --text: #30251e;
+      --muted: #73675f;
+      --border: #eaded2;
+      --danger: #c64949;
+      --shadow: 0 18px 45px rgba(91, 60, 38, 0.1);
+      --radius-large: 24px;
+      --radius-medium: 16px;
+      --radius-small: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: light;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 32px 20px;
+      color: var(--text);
+      font-family:
+        Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(242, 214, 182, 0.55), transparent 32%),
+        linear-gradient(135deg, #fffdf8 0%, var(--background) 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 24px;
+      padding: 30px;
+      overflow: hidden;
+      position: relative;
+      color: #ffffff;
+      border-radius: var(--radius-large);
+      background: linear-gradient(135deg, #7d4d30 0%, #a76b44 62%, #bd835a 100%);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      width: 220px;
+      height: 220px;
+      content: "";
+      position: absolute;
+      top: -90px;
+      right: -55px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .hero__eyebrow {
+      margin: 0 0 8px;
+      color: #ffe8cf;
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      line-height: 1.25;
+      letter-spacing: -0.04em;
+    }
+
+    .hero__description {
+      max-width: 650px;
+      margin: 12px 0 0;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.45fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      padding: 26px;
+      border: 1px solid rgba(234, 222, 210, 0.9);
+      border-radius: var(--radius-large);
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .card__header {
+      margin-bottom: 22px;
+    }
+
+    .card__title {
+      margin: 0;
+      font-size: 1.28rem;
+      letter-spacing: -0.025em;
+    }
+
+    .card__subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 0.94rem;
+      font-weight: 750;
+    }
+
+    .input-wrap {
+      display: flex;
+      min-height: 54px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-small);
+      background: var(--surface);
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(155, 99, 60, 0.12);
+    }
+
+    .input-wrap.invalid {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 4px rgba(198, 73, 73, 0.1);
+    }
+
+    .input-wrap input {
+      width: 100%;
+      min-width: 0;
+      padding: 14px 16px;
+      color: var(--text);
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font-size: 1.05rem;
+      font-weight: 750;
+    }
+
+    .input-unit {
+      min-width: 58px;
+      display: grid;
+      place-items: center;
+      padding: 0 14px;
+      color: var(--muted);
+      border-left: 1px solid var(--border);
+      background: var(--surface-soft);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .error-message {
+      min-height: 20px;
+      margin: 7px 2px 0;
+      color: var(--danger);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .reset-button {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 2px;
+      padding: 13px 18px;
+      color: var(--primary-dark);
+      border: 0;
+      border-radius: var(--radius-small);
+      background: var(--primary-light);
+      font-weight: 800;
+      cursor: pointer;
+      transition:
+        transform 0.18s ease,
+        background-color 0.18s ease;
+    }
+
+    .reset-button:hover {
+      background: #eac6a0;
+      transform: translateY(-1px);
+    }
+
+    .reset-button:active {
+      transform: translateY(0);
+    }
+
+    .reset-button:focus-visible {
+      outline: 3px solid rgba(155, 99, 60, 0.35);
+      outline-offset: 3px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .result-box {
+      min-height: 128px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-medium);
+      background: var(--surface-soft);
+    }
+
+    .result-box--profit {
+      border-color: #cce6da;
+      background: var(--accent-light);
+    }
+
+    .result-box--loss {
+      border-color: #efcaca;
+      background: #fff0f0;
+    }
+
+    .result-label {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .result-value {
+      margin-top: 14px;
+      overflow-wrap: anywhere;
+      font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+      font-weight: 850;
+      letter-spacing: -0.035em;
+    }
+
+    .chart-panel {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-medium);
+      background: var(--surface);
+    }
+
+    .chart-heading {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .chart-heading h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 650;
+    }
+
+    .legend-item {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .legend-color--sales {
+      background: var(--primary);
+    }
+
+    .legend-color--profit {
+      background: var(--accent);
+    }
+
+    .chart-wrap {
+      width: 100%;
+      height: 310px;
+      position: relative;
+    }
+
+    #comparisonChart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .notice {
+      margin-top: 24px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      color: #675849;
+      border: 1px solid #ead7bc;
+      border-radius: var(--radius-medium);
+      background: #fff6e7;
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+
+    .notice__icon {
+      flex: 0 0 auto;
+      font-size: 1.1rem;
+    }
+
+    .notice p {
+      margin: 0;
+    }
+
+    @media (max-width: 850px) {
+      body {
+        padding: 22px 16px;
+      }
+
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .results-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 12px;
+      }
+
+      .hero,
+      .card {
+        padding: 22px 18px;
+        border-radius: 20px;
+      }
+
+      .hero {
+        margin-bottom: 16px;
+      }
+
+      .dashboard {
+        gap: 16px;
+      }
+
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .result-box {
+        min-height: 105px;
+      }
+
+      .chart-panel {
+        padding: 16px 12px;
+      }
+
+      .chart-heading {
+        display: block;
+      }
+
+      .legend {
+        margin-top: 10px;
+      }
+
+      .chart-wrap {
+        height: 280px;
+      }
+
+      .input-wrap {
+        min-height: 58px;
+      }
+
+      .reset-button {
+        min-height: 56px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="hero">
+      <p class="hero__eyebrow">CAFE BUSINESS SIMULATOR</p>
+      <h1>나만의 카페 경영 시뮬레이션</h1>
+      <p class="hero__description">
+        커피 가격과 재료비, 예상 판매량을 조정해 하루 매출과 이익이
+        어떻게 달라지는지 간편하게 확인해 보세요.
+      </p>
+    </header>
+
+    <section class="dashboard" aria-label="카페 경영 계산기">
+      <section class="card" aria-labelledby="inputTitle">
+        <div class="card__header">
+          <h2 class="card__title" id="inputTitle">운영 조건 입력</h2>
+          <p class="card__subtitle">
+            입력값을 변경하면 예상 결과가 자동으로 계산됩니다.
+          </p>
+        </div>
+
+        <div class="input-group">
+          <label for="price">커피 한 잔 판매 가격</label>
+          <div class="input-wrap" id="priceWrap">
+            <input
+              id="price"
+              type="number"
+              value="4000"
+              min="0"
+              max="100000000"
+              step="100"
+              inputmode="numeric"
+              aria-describedby="priceError"
+            >
+            <span class="input-unit">원</span>
+          </div>
+          <p class="error-message" id="priceError" aria-live="polite"></p>
+        </div>
+
+        <div class="input-group">
+          <label for="cost">커피 한 잔 재료비</label>
+          <div class="input-wrap" id="costWrap">
+            <input
+              id="cost"
+              type="number"
+              value="1500"
+              min="0"
+              max="100000000"
+              step="100"
+              inputmode="numeric"
+              aria-describedby="costError"
+            >
+            <span class="input-unit">원</span>
+          </div>
+          <p class="error-message" id="costError" aria-live="polite"></p>
+        </div>
+
+        <div class="input-group">
+          <label for="quantity">하루 예상 판매량</label>
+          <div class="input-wrap" id="quantityWrap">
+            <input
+              id="quantity"
+              type="number"
+              value="50"
+              min="0"
+              max="1000000"
+              step="1"
+              inputmode="numeric"
+              aria-describedby="quantityError"
+            >
+            <span class="input-unit">잔</span>
+          </div>
+          <p class="error-message" id="quantityError" aria-live="polite"></p>
+        </div>
+
+        <button class="reset-button" id="resetButton" type="button">
+          기본값으로 초기화
+        </button>
+      </section>
+
+      <section class="card" aria-labelledby="resultTitle">
+        <div class="card__header">
+          <h2 class="card__title" id="resultTitle">하루 예상 결과</h2>
+          <p class="card__subtitle">
+            매출에서 전체 재료비를 뺀 금액을 이익으로 표시합니다.
+          </p>
+        </div>
+
+        <div class="results-grid" aria-live="polite">
+          <article class="result-box">
+            <span class="result-label">예상 매출</span>
+            <strong class="result-value" id="salesResult">200,000원</strong>
+          </article>
+
+          <article class="result-box">
+            <span class="result-label">전체 재료비</span>
+            <strong class="result-value" id="costResult">75,000원</strong>
+          </article>
+
+          <article class="result-box result-box--profit" id="profitBox">
+            <span class="result-label">재료비 제외 이익</span>
+            <strong class="result-value" id="profitResult">125,000원</strong>
+          </article>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-heading">
+            <h3>매출과 이익 비교</h3>
+
+            <div class="legend" aria-hidden="true">
+              <span class="legend-item">
+                <span class="legend-color legend-color--sales"></span>
+                매출
+              </span>
+              <span class="legend-item">
+                <span class="legend-color legend-color--profit"></span>
+                재료비 제외 이익
+              </span>
+            </div>
+          </div>
+
+          <div
+            class="chart-wrap"
+            role="img"
+            aria-label="하루 예상 매출과 재료비 제외 이익을 비교한 막대그래프"
+          >
+            <canvas id="comparisonChart"></canvas>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside class="notice">
+      <span class="notice__icon" aria-hidden="true">☕</span>
+      <p>
+        본 시뮬레이션은 실제 매출을 예측하는 서비스가 아닙니다.
+        사용자가 입력한 판매 가격, 재료비, 판매량을 기준으로 단순 계산한
+        참고용 결과이며 임대료, 인건비, 세금 및 기타 운영비는 포함하지 않습니다.
+      </p>
+    </aside>
+  </main>
+
+  <script>
+    "use strict";
+
+    const DEFAULT_VALUES = {
+      price: 4000,
+      cost: 1500,
+      quantity: 50
+    };
+
+    const INPUT_SETTINGS = {
+      price: {
+        label: "판매 가격",
+        max: 100000000,
+        integerOnly: false
+      },
+      cost: {
+        label: "재료비",
+        max: 100000000,
+        integerOnly: false
+      },
+      quantity: {
+        label: "판매량",
+        max: 1000000,
+        integerOnly: true
+      }
+    };
+
+    const inputs = {
+      price: document.getElementById("price"),
+      cost: document.getElementById("cost"),
+      quantity: document.getElementById("quantity")
+    };
+
+    const salesResult = document.getElementById("salesResult");
+    const costResult = document.getElementById("costResult");
+    const profitResult = document.getElementById("profitResult");
+    const profitBox = document.getElementById("profitBox");
+    const resetButton = document.getElementById("resetButton");
+    const canvas = document.getElementById("comparisonChart");
+    const chartWrap = canvas.parentElement;
+    const context = canvas.getContext("2d");
+
+    let chartValues = {
+      sales: 200000,
+      profit: 125000
+    };
+
+    function formatWon(value) {
+      const safeValue = Object.is(value, -0) ? 0 : Math.round(value);
+      return `${safeValue.toLocaleString("ko-KR")}원`;
+    }
+
+    function formatShortWon(value) {
+      const absoluteValue = Math.abs(value);
+      const sign = value < 0 ? "-" : "";
+
+      if (absoluteValue >= 100000000) {
+        const amount = absoluteValue / 100000000;
+        return `${sign}${Number(amount.toFixed(1)).toLocaleString("ko-KR")}억원`;
+      }
+
+      if (absoluteValue >= 10000) {
+        const amount = absoluteValue / 10000;
+        return `${sign}${Number(amount.toFixed(1)).toLocaleString("ko-KR")}만원`;
+      }
+
+      return `${sign}${Math.round(absoluteValue).toLocaleString("ko-KR")}원`;
+    }
+
+    function validateInput(name) {
+      const input = inputs[name];
+      const settings = INPUT_SETTINGS[name];
+      const wrap = document.getElementById(`${name}Wrap`);
+      const error = document.getElementById(`${name}Error`);
+      const rawValue = input.value.trim();
+      const numericValue = Number(rawValue);
+
+      let message = "";
+
+      if (rawValue === "") {
+        message = `${settings.label}을 입력해 주세요.`;
+      } else if (!Number.isFinite(numericValue)) {
+        message = "올바른 숫자를 입력해 주세요.";
+      } else if (numericValue < 0) {
+        message = "음수는 입력할 수 없습니다.";
+      } else if (numericValue > settings.max) {
+        message = `${settings.max.toLocaleString("ko-KR")} 이하로 입력해 주세요.`;
+      } else if (settings.integerOnly && !Number.isInteger(numericValue)) {
+        message = "판매량은 정수로 입력해 주세요.";
+      }
+
+      const isValid = message === "";
+      wrap.classList.toggle("invalid", !isValid);
+      input.setAttribute("aria-invalid", String(!isValid));
+      error.textContent = message;
+
+      return {
+        isValid,
+        value: isValid ? numericValue : 0
+      };
+    }
+
+    function showUnavailableResults() {
+      salesResult.textContent = "계산할 수 없음";
+      costResult.textContent = "계산할 수 없음";
+      profitResult.textContent = "계산할 수 없음";
+      profitBox.classList.remove("result-box--loss");
+      profitBox.classList.add("result-box--profit");
+
+      chartValues = {
+        sales: 0,
+        profit: 0
+      };
+
+      drawChart();
+    }
+
+    function calculate() {
+      const priceData = validateInput("price");
+      const costData = validateInput("cost");
+      const quantityData = validateInput("quantity");
+
+      if (
+        !priceData.isValid ||
+        !costData.isValid ||
+        !quantityData.isValid
+      ) {
+        showUnavailableResults();
+        return;
+      }
+
+      const sales = priceData.value * quantityData.value;
+      const totalCost = costData.value * quantityData.value;
+      const profit = sales - totalCost;
+
+      if (
+        !Number.isSafeInteger(Math.round(sales)) ||
+        !Number.isSafeInteger(Math.round(totalCost)) ||
+        !Number.isSafeInteger(Math.round(profit))
+      ) {
+        showUnavailableResults();
+        return;
+      }
+
+      salesResult.textContent = formatWon(sales);
+      costResult.textContent = formatWon(totalCost);
+      profitResult.textContent = formatWon(profit);
+
+      const isLoss = profit < 0;
+      profitBox.classList.toggle("result-box--loss", isLoss);
+      profitBox.classList.toggle("result-box--profit", !isLoss);
+
+      chartValues = {
+        sales,
+        profit
+      };
+
+      drawChart();
+    }
+
+    function preventInvalidCharacters(event) {
+      if (["e", "E", "+", "-"].includes(event.key)) {
+        event.preventDefault();
+      }
+    }
+
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+      const safeRadius = Math.min(radius, Math.abs(width) / 2, Math.abs(height) / 2);
+
+      ctx.beginPath();
+      ctx.roundRect(x, y, width, height, safeRadius);
+      ctx.fill();
+    }
+
+    function drawChart() {
+      const rect = chartWrap.getBoundingClientRect();
+      const width = Math.max(rect.width, 260);
+      const height = Math.max(rect.height, 240);
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      context.clearRect(0, 0, width, height);
+
+      const compact = width < 430;
+      const padding = {
+        top: 30,
+        right: compact ? 14 : 24,
+        bottom: 50,
+        left: compact ? 57 : 72
+      };
+
+      const chartWidth = width - padding.left - padding.right;
+      const chartHeight = height - padding.top - padding.bottom;
+
+      const values = [chartValues.sales, chartValues.profit];
+      const maximumValue = Math.max(...values, 0);
+      const minimumValue = Math.min(...values, 0);
+
+      let rangeMinimum = minimumValue;
+      let rangeMaximum = maximumValue;
+
+      if (rangeMinimum === 0 && rangeMaximum === 0) {
+        rangeMaximum = 100;
+      } else if (rangeMinimum < 0) {
+        const range = rangeMaximum - rangeMinimum || 1;
+        rangeMinimum -= range * 0.12;
+        rangeMaximum += range * 0.12;
+      } else {
+        rangeMaximum *= 1.18;
+      }
+
+      const valueRange = rangeMaximum - rangeMinimum || 1;
+      const yPosition = (value) =>
+        padding.top + ((rangeMaximum - value) / valueRange) * chartHeight;
+
+      context.font = `${compact ? 10 : 11}px Pretendard, Arial, sans-serif`;
+      context.textAlign = "right";
+      context.textBaseline = "middle";
+
+      const gridCount = 4;
+
+      for (let index = 0; index <= gridCount; index += 1) {
+        const ratio = index / gridCount;
+        const value = rangeMaximum - valueRange * ratio;
+        const y = padding.top + chartHeight * ratio;
+
+        context.strokeStyle = "#eaded2";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(padding.left, y);
+        context.lineTo(width - padding.right, y);
+        context.stroke();
+
+        context.fillStyle = "#73675f";
+        context.fillText(
+          formatShortWon(value),
+          padding.left - 8,
+          y
+        );
+      }
+
+      const zeroY = yPosition(0);
+
+      context.strokeStyle = "#8d8077";
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.moveTo(padding.left, zeroY);
+      context.lineTo(width - padding.right, zeroY);
+      context.stroke();
+
+      const bars = [
+        {
+          label: "예상 매출",
+          value: chartValues.sales,
+          color: "#9b633c"
+        },
+        {
+          label: "재료비 제외 이익",
+          value: chartValues.profit,
+          color: chartValues.profit < 0 ? "#c64949" : "#4d9b7a"
+        }
+      ];
+
+      const slotWidth = chartWidth / bars.length;
+      const barWidth = Math.min(compact ? 64 : 92, slotWidth * 0.48);
+
+      bars.forEach((bar, index) => {
+        const centerX = padding.left + slotWidth * (index + 0.5);
+        const valueY = yPosition(bar.value);
+        const barTop = Math.min(valueY, zeroY);
+        const barHeight = Math.max(Math.abs(zeroY - valueY), bar.value === 0 ? 2 : 3);
+
+        context.fillStyle = bar.color;
+        drawRoundedRect(
+          context,
+          centerX - barWidth / 2,
+          barTop,
+          barWidth,
+          barHeight,
+          8
+        );
+
+        context.fillStyle = "#30251e";
+        context.font = `700 ${compact ? 10 : 11}px Pretendard, Arial, sans-serif`;
+        context.textAlign = "center";
+        context.textBaseline = bar.value < 0 ? "top" : "bottom";
+
+        let labelY = bar.value < 0 ? valueY + 8 : valueY - 8;
+
+        if (bar.value === 0) {
+          labelY = zeroY - 8;
+          context.textBaseline = "bottom";
+        }
+
+        context.fillText(
+          formatShortWon(bar.value),
+          centerX,
+          labelY
+        );
+
+        context.fillStyle = "#73675f";
+        context.font = `700 ${compact ? 10 : 12}px Pretendard, Arial, sans-serif`;
+        context.textBaseline = "top";
+
+        const displayLabel =
+          compact && bar.label === "재료비 제외 이익"
+            ? "예상 이익"
+            : bar.label;
+
+        context.fillText(
+          displayLabel,
+          centerX,
+          height - padding.bottom + 16
+        );
+      });
+    }
+
+    Object.entries(inputs).forEach(([name, input]) => {
+      input.addEventListener("keydown", preventInvalidCharacters);
+      input.addEventListener("input", calculate);
+
+      input.addEventListener("blur", () => {
+        const validation = validateInput(name);
+
+        if (validation.isValid && validation.value === 0) {
+          input.value = "0";
+        }
+
+        calculate();
+      });
+    });
+
+    resetButton.addEventListener("click", () => {
+      Object.entries(DEFAULT_VALUES).forEach(([name, value]) => {
+        inputs[name].value = value;
+      });
+
+      calculate();
+      inputs.price.focus();
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      window.requestAnimationFrame(drawChart);
+    });
+
+    resizeObserver.observe(chartWrap);
+
+    calculate();
+  </script>
+</body>
+</html>
